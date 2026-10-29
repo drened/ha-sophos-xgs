@@ -1,0 +1,78 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect Sophos XGS",
+        "description": "Credentials of a firewall administrator for the XML API. Enable the API under Backup & firmware → API and allow the Home Assistant IP.",
+        "data": {
+          "host": "Host / IP address",
+          "username": "API user",
+          "password": "Password",
+          "api_port": "Admin/API port",
+          "verify_ssl": "Verify SSL certificate",
+          "snmp_version": "SNMP version",
+          "snmp_port": "SNMP port"
+        }
+      },
+      "snmp_v2c": {
+        "title": "SNMP v2c",
+        "data": {
+          "community": "Community"
+        }
+      },
+      "snmp_v3": {
+        "title": "SNMP v3",
+        "data": {
+          "v3_user": "Username",
+          "v3_auth_protocol": "Authentication",
+          "v3_auth_key": "Auth password",
+          "v3_priv_protocol": "Encryption",
+          "v3_priv_key": "Encryption password"
+        }
+      },
+      "entities": {
+        "title": "Select entities",
+        "description": "Choose interfaces for traffic/link sensors and firewall rules to expose as switches. You can change this later in the options.",
+        "data": {
+          "interfaces": "Interfaces",
+          "firewall_rules": "Firewall rules as switches"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate",
+        "description": "Login to the XML API failed. Please enter the credentials again.",
+        "data": {
+          "username": "API user",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect_snmp": "No SNMP response. Check SNMP agent, community/user, manager IP and device access (SNMP on the zone).",
+      "cannot_connect_api": "XML API unreachable. Check host, port and device access (HTTPS admin).",
+      "api_access_denied": "API access denied: enable the API and add the Home Assistant IP to the allowed IP addresses.",
+      "invalid_auth": "Invalid username or password.",
+      "unknown": "Unexpected error – see log."
+    },
+    "abort": {
+      "already_configured": "This firewall is already configured.",
+      "reauth_successful": "Credentials updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Sophos XGS options",
+        "data": {
+          "interfaces": "Interfaces",
+          "firewall_rules": "Firewall rules as switches",
+          "snmp_interval": "SNMP polling interval",
+          "api_interval": "API polling interval"
+        }
+      }
+    },
+    "abort": {
+      "not_loaded": "The integration is not loaded. Connect to the firewall first."
+    }
+  }
+}

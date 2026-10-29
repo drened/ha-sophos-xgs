@@ -1,0 +1,16 @@
+{
+  "domain": "sophos_xgs",
+  "name": "Sophos XGS Firewall",
+  "codeowners": [
+    "@drened"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/drened/ha-sophos-xgs",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/drened/ha-sophos-xgs/issues",
+  "requirements": [
+    "pysnmp>=7.1.0"
+  ],
+  "version": "0.1.0"
+}

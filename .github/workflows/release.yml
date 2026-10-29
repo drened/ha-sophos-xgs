@@ -1,0 +1,26 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Attach ZIP to release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set version in manifest
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          jq --arg v "$VERSION" '.version = $v' custom_components/sophos_xgs/manifest.json > m.json
+          mv m.json custom_components/sophos_xgs/manifest.json
+      - name: Build ZIP
+        run: cd custom_components/sophos_xgs && zip -r ../../sophos_xgs.zip . -x "__pycache__/*"
+      - name: Upload ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" sophos_xgs.zip --clobber

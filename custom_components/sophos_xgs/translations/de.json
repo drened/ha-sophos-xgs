@@ -1,0 +1,78 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Sophos XGS verbinden",
+        "description": "Zugangsdaten eines Firewall-Administrators für die XML-API. Die API muss unter Backup & Firmware → API aktiviert und die IP von Home Assistant freigegeben sein.",
+        "data": {
+          "host": "Host / IP-Adresse",
+          "username": "API-Benutzer",
+          "password": "Passwort",
+          "api_port": "Admin-/API-Port",
+          "verify_ssl": "SSL-Zertifikat prüfen",
+          "snmp_version": "SNMP-Version",
+          "snmp_port": "SNMP-Port"
+        }
+      },
+      "snmp_v2c": {
+        "title": "SNMP v2c",
+        "data": {
+          "community": "Community"
+        }
+      },
+      "snmp_v3": {
+        "title": "SNMP v3",
+        "data": {
+          "v3_user": "Benutzername",
+          "v3_auth_protocol": "Authentifizierung",
+          "v3_auth_key": "Auth-Passwort",
+          "v3_priv_protocol": "Verschlüsselung",
+          "v3_priv_key": "Verschlüsselungs-Passwort"
+        }
+      },
+      "entities": {
+        "title": "Entitäten auswählen",
+        "description": "Für welche Interfaces sollen Traffic- und Link-Sensoren angelegt werden, und welche Firewall-Regeln sollen als Schalter erscheinen? Das lässt sich später unter Optionen ändern.",
+        "data": {
+          "interfaces": "Interfaces",
+          "firewall_rules": "Firewall-Regeln als Schalter"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Neu anmelden",
+        "description": "Die Anmeldung an der XML-API ist fehlgeschlagen. Bitte Zugangsdaten erneut eingeben.",
+        "data": {
+          "username": "API-Benutzer",
+          "password": "Passwort"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect_snmp": "Keine SNMP-Antwort. SNMP-Agent, Community/Benutzer, Manager-IP und Gerätezugriff (SNMP in der Zone) prüfen.",
+      "cannot_connect_api": "XML-API nicht erreichbar. Host, Port und Gerätezugriff (HTTPS-Admin) prüfen.",
+      "api_access_denied": "API-Zugriff verweigert: API aktivieren und die IP von Home Assistant unter „Zulässige IP-Adressen“ eintragen.",
+      "invalid_auth": "Benutzername oder Passwort falsch.",
+      "unknown": "Unerwarteter Fehler – siehe Protokoll."
+    },
+    "abort": {
+      "already_configured": "Diese Firewall ist bereits eingerichtet.",
+      "reauth_successful": "Zugangsdaten aktualisiert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Sophos XGS Optionen",
+        "data": {
+          "interfaces": "Interfaces",
+          "firewall_rules": "Firewall-Regeln als Schalter",
+          "snmp_interval": "SNMP-Abfrageintervall",
+          "api_interval": "API-Abfrageintervall"
+        }
+      }
+    },
+    "abort": {
+      "not_loaded": "Die Integration ist gerade nicht geladen. Bitte erst die Verbindung zur Firewall herstellen."
+    }
+  }
+}

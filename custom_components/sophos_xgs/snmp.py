@@ -8,6 +8,7 @@ from typing import Any
 
 from pyasn1.type import univ
 from pysnmp.entity import config as snmp_cfg
+from pysnmp.smi import view
 from pysnmp.hlapi.v3arch.asyncio import (
     CommunityData,
     ContextData,
@@ -54,6 +55,22 @@ _PRIV_MAP = {
 
 _MISSING = {"NoSuchObject", "NoSuchInstance", "EndOfMibView"}
 _GET_CHUNK = 20
+
+
+def _create_engine() -> SnmpEngine:
+    """SNMP-Engine anlegen und alle MIB-Module vorab laden.
+
+    pysnmp liest die MIB-Module beim ersten Befehl von der Platte. Damit das
+    nicht im Event-Loop passiert (Warnung "Detected blocking call"), wird das
+    hier im Executor erledigt – genauso wie in der SNMP-Integration von HA.
+    """
+    engine = SnmpEngine()
+    mib_view_controller = view.MibViewController(
+        engine.message_dispatcher.mib_instrum_controller.get_mib_builder()
+    )
+    engine.cache["mibViewController"] = mib_view_controller
+    mib_view_controller.mibBuilder.load_modules()
+    return engine
 
 
 class SnmpError(Exception):
@@ -110,7 +127,7 @@ class SophosSnmpClient:
         cls, hass: HomeAssistant, conf: Mapping[str, Any]
     ) -> SophosSnmpClient:
         # Das Anlegen der Engine lädt MIB-Module von der Platte -> Executor
-        engine = await hass.async_add_executor_job(SnmpEngine)
+        engine = await hass.async_add_executor_job(_create_engine)
         return cls(
             engine,
             conf[CONF_HOST],

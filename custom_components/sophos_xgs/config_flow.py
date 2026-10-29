@@ -44,6 +44,7 @@ from .const import (
     CONF_API_PORT,
     CONF_COMMUNITY,
     CONF_INTERFACES,
+    CONF_LICENSE_WARN_DAYS,
     CONF_RULES,
     CONF_SNMP_INTERVAL,
     CONF_SNMP_PORT,
@@ -56,6 +57,7 @@ from .const import (
     CONF_VERIFY_SSL,
     DEFAULT_API_INTERVAL,
     DEFAULT_API_PORT,
+    DEFAULT_LICENSE_WARN_DAYS,
     DEFAULT_SNMP_INTERVAL,
     DEFAULT_SNMP_PORT,
     DOMAIN,
@@ -267,6 +269,7 @@ class SophosXgsConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_RULES: user_input.get(CONF_RULES, []),
                     CONF_SNMP_INTERVAL: DEFAULT_SNMP_INTERVAL,
                     CONF_API_INTERVAL: DEFAULT_API_INTERVAL,
+                    CONF_LICENSE_WARN_DAYS: DEFAULT_LICENSE_WARN_DAYS,
                 },
             )
 
@@ -328,6 +331,7 @@ class SophosXgsOptionsFlow(OptionsFlow):
                     CONF_RULES: user_input.get(CONF_RULES, []),
                     CONF_SNMP_INTERVAL: int(user_input[CONF_SNMP_INTERVAL]),
                     CONF_API_INTERVAL: int(user_input[CONF_API_INTERVAL]),
+                    CONF_LICENSE_WARN_DAYS: int(user_input[CONF_LICENSE_WARN_DAYS]),
                 }
             )
 
@@ -360,6 +364,17 @@ class SophosXgsOptionsFlow(OptionsFlow):
                 ): NumberSelector(
                     NumberSelectorConfig(
                         min=15, max=3600, step=5, unit_of_measurement="s",
+                        mode=NumberSelectorMode.BOX,
+                    )
+                ),
+                vol.Required(
+                    CONF_LICENSE_WARN_DAYS,
+                    default=entry.options.get(
+                        CONF_LICENSE_WARN_DAYS, DEFAULT_LICENSE_WARN_DAYS
+                    ),
+                ): NumberSelector(
+                    NumberSelectorConfig(
+                        min=0, max=365, step=1, unit_of_measurement="Tage",
                         mode=NumberSelectorMode.BOX,
                     )
                 ),

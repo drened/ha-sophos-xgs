@@ -16,6 +16,7 @@ Tested with **SFOS 22.0 GA**.
 - CPU, memory, swap*, disk usage (%)
 - Logged-in users, last boot, firmware, IPS signature version
 - License status and expiry date per module (Base Firewall, Network, Web, Zero-Day, Support …)
+- Days until the next license expires
 - Per selected interface: download/upload in Mbit/s, total traffic*
 - Per IPsec connection: number of active tunnels*
 - Per Sophos access point: number of clients
@@ -31,6 +32,11 @@ Tested with **SFOS 22.0 GA**.
 
 **Switches**
 - Each selected firewall rule can be enabled/disabled
+
+**Repairs**
+- Warning under *Settings → Repairs* when a license expires within 30 days (configurable, 0 = off), and an error when a license has expired
+
+New IPsec connections and access points are added automatically; removed ones become unavailable.
 
 \* disabled by default, enable under *Entities*.
 
@@ -63,13 +69,13 @@ Copy `custom_components/sophos_xgs` to `/config/custom_components/` and restart 
 2. SNMP community or v3 credentials
 3. Interfaces that get sensors (physical ports are preselected) and firewall rules to expose as switches
 
-Interfaces, rules and polling intervals (default SNMP 30 s, API 60 s) can be changed later via **Configure**.
+Interfaces, rules, polling intervals (default SNMP 30 s, API 60 s) and the license warning lead time (default 30 days) can be changed later via **Configure**.
 
 ## Notes
 
 - **Rule switches really change the firewall configuration.** Every change shows up in the Sophos admin log. Do not expose a rule that Home Assistant itself needs to reach the firewall.
 - SFOS requires the complete rule when updating it. The integration reads the rule, changes only its status and writes it back in full.
-- New IPsec connections or access points are picked up on the next reload of the integration.
+- Gateway up/down status is not exposed by SFOS via SNMP or the XML API. Use the link sensor of the WAN port or Home Assistant's *Ping* integration for outage notifications.
 - If a license expiry format is not recognized, the sensor stays *unknown*; the original text is in the `rohwert` attribute. Please open an issue with that value.
 
 ## Example automations

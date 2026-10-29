@@ -8,7 +8,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import entity_registry as er, issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import SophosApiClient
@@ -18,6 +18,8 @@ from .const import (
     CONF_RULES,
     CONF_VERIFY_SSL,
     DEFAULT_API_PORT,
+    DOMAIN,
+    LICENSES,
 )
 from .coordinator import SophosApiCoordinator, SophosSnmpCoordinator
 from .snmp import SophosSnmpClient
@@ -74,6 +76,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: SophosConfigEntry) -> bo
 async def async_unload_entry(hass: HomeAssistant, entry: SophosConfigEntry) -> bool:
     """Eintrag entladen."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: SophosConfigEntry) -> None:
+    """Reparatur-Hinweise beim Entfernen der Integration löschen."""
+    for key in LICENSES:
+        for kind in ("expiring", "expired"):
+            ir.async_delete_issue(hass, DOMAIN, f"{entry.entry_id}_license_{kind}_{key}")
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: SophosConfigEntry) -> None:

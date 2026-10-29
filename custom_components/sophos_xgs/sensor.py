@@ -18,10 +18,17 @@ from homeassistant.const import (
     EntityCategory,
     UnitOfDataRate,
     UnitOfInformation,
+    UnitOfTime,
 )
+from homeassistant.core import callback
 
 from .const import CONF_INTERFACES, HA_STATES, LICENSE_STATES, LICENSES
-from .coordinator import SnmpData, SophosSnmpCoordinator, parse_license_date
+from .coordinator import (
+    SnmpData,
+    SophosSnmpCoordinator,
+    next_license_expiry,
+    parse_license_date,
+)
 from .entity import SophosEntity
 
 if TYPE_CHECKING:
@@ -39,6 +46,7 @@ class SophosSensorDescription(SensorEntityDescription):
 
     value_fn: Callable[[SnmpData], Any]
     attr_fn: Callable[[SnmpData], dict[str, Any] | None] | None = None
+    exists_fn: Callable[[SnmpData], bool] | None = None
 
 
 def _scalar(key: str) -> Callable[[SnmpData], Any]:
@@ -247,6 +255,7 @@ def _tunnel_sensor(name: str) -> SophosSensorDescription:
         state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
         value_fn=lambda d: (t.active_tunnels if (t := d.tunnels.get(name)) else None),
+        exists_fn=lambda d: name in d.tunnels,
     )
 
 
@@ -258,7 +267,35 @@ def _ap_sensor(name: str) -> SophosSensorDescription:
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda d: (a.clients if (a := d.access_points.get(name)) else None),
         attr_fn=lambda d: ({"modell": a.model} if (a := d.access_points.get(name)) else None),
+        exists_fn=lambda d: name in d.access_points,
     )
+
+
+def _license_days(d: SnmpData) -> int | None:
+    nxt = next_license_expiry(d)
+    return nxt[2] if nxt else None
+
+
+def _license_days_attrs(d: SnmpData) -> dict[str, Any] | None:
+    nxt = next_license_expiry(d)
+    if nxt is None:
+        return None
+    _, name, _, expiry = nxt
+    return {"lizenz": name, "ablaufdatum": expiry.isoformat()}
+
+
+LICENSE_DAYS_SENSOR = SophosSensorDescription(
+    key="license_days_left",
+    name="Tage bis Lizenzablauf",
+    icon="mdi:calendar-alert",
+    device_class=SensorDeviceClass.DURATION,
+    native_unit_of_measurement=UnitOfTime.DAYS,
+    suggested_unit_of_measurement=UnitOfTime.DAYS,
+    suggested_display_precision=0,
+    state_class=SensorStateClass.MEASUREMENT,
+    value_fn=_license_days,
+    attr_fn=_license_days_attrs,
+)
 
 
 async def async_setup_entry(
@@ -276,10 +313,31 @@ async def async_setup_entry(
     descriptions.extend(_license_sensors())
     for if_name in entry.options.get(CONF_INTERFACES, []):
         descriptions.extend(_interface_sensors(if_name))
-    descriptions.extend(_tunnel_sensor(n) for n in data.tunnels)
-    descriptions.extend(_ap_sensor(n) for n in data.access_points)
+    descriptions.append(LICENSE_DAYS_SENSOR)
 
     async_add_entities(SophosSensor(coordinator, entry, desc) for desc in descriptions)
+
+    # IPsec-Verbindungen und Access Points: auch später hinzugekommene anlegen
+    known_tunnels: set[str] = set()
+    known_aps: set[str] = set()
+
+    @callback
+    def _add_dynamic() -> None:
+        current = coordinator.data
+        if current is None:
+            return
+        new: list[SophosSensor] = []
+        for name in current.tunnels.keys() - known_tunnels:
+            known_tunnels.add(name)
+            new.append(SophosSensor(coordinator, entry, _tunnel_sensor(name)))
+        for name in current.access_points.keys() - known_aps:
+            known_aps.add(name)
+            new.append(SophosSensor(coordinator, entry, _ap_sensor(name)))
+        if new:
+            async_add_entities(new)
+
+    _add_dynamic()
+    entry.async_on_unload(coordinator.async_add_listener(_add_dynamic))
 
 
 class SophosSensor(SophosEntity[SophosSnmpCoordinator], SensorEntity):
@@ -295,6 +353,11 @@ class SophosSensor(SophosEntity[SophosSnmpCoordinator], SensorEntity):
     ) -> None:
         super().__init__(coordinator, entry, description.key)
         self.entity_description = description
+
+    @property
+    def available(self) -> bool:
+        exists = self.entity_description.exists_fn
+        return super().available and (exists is None or exists(self.coordinator.data))
 
     @property
     def native_value(self) -> Any:

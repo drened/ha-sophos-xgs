@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import logging
 import time
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -21,10 +22,14 @@ from .api import (
 )
 from .const import (
     CONF_API_INTERVAL,
+    CONF_LICENSE_WARN_DAYS,
     CONF_SNMP_INTERVAL,
     DEFAULT_API_INTERVAL,
+    DEFAULT_LICENSE_WARN_DAYS,
     DEFAULT_SNMP_INTERVAL,
     DOMAIN,
+    LICENSE_ACTIVE_STATES,
+    LICENSE_STATES,
     LICENSES,
     OID_AP_CLIENTS,
     OID_AP_MODEL,
@@ -76,6 +81,28 @@ def parse_license_date(raw: str | None) -> datetime | None:
         except ValueError:
             continue
     return None
+
+
+def license_expiries(data: SnmpData) -> list[tuple[str, str, int, date]]:
+    """Laufende Lizenzen mit Ablaufdatum: (key, Name, Resttage, Datum), sortiert."""
+    today = dt_util.now().date()
+    result: list[tuple[str, str, int, date]] = []
+    for key, (status, raw) in data.licenses.items():
+        if LICENSE_STATES.get(status) not in LICENSE_ACTIVE_STATES:
+            continue
+        parsed = parse_license_date(raw)
+        if parsed is None:
+            continue
+        expiry = parsed.date()
+        result.append((key, LICENSES[key][1], (expiry - today).days, expiry))
+    result.sort(key=lambda item: item[2])
+    return result
+
+
+def next_license_expiry(data: SnmpData) -> tuple[str, str, int, date] | None:
+    """Die als Nächstes ablaufende Lizenz."""
+    expiries = license_expiries(data)
+    return expiries[0] if expiries else None
 
 
 @dataclass(slots=True)
@@ -162,9 +189,66 @@ class SophosSnmpCoordinator(DataUpdateCoordinator[SnmpData]):
 
     async def _async_update_data(self) -> SnmpData:
         try:
-            return await self._fetch()
+            data = await self._fetch()
         except SnmpError as err:
             raise UpdateFailed(f"SNMP-Abfrage fehlgeschlagen: {err}") from err
+        self._update_license_issues(data)
+        return data
+
+    def _update_license_issues(self, data: SnmpData) -> None:
+        """Hinweise unter Einstellungen → Reparaturen pflegen."""
+        warn_days = int(
+            self.config_entry.options.get(
+                CONF_LICENSE_WARN_DAYS, DEFAULT_LICENSE_WARN_DAYS
+            )
+        )
+        title = self.config_entry.title
+        expiring = {
+            key: (name, days, expiry)
+            for key, name, days, expiry in license_expiries(data)
+            if warn_days > 0 and days <= warn_days
+        }
+        expired = {
+            key
+            for key, (status, _) in data.licenses.items()
+            if LICENSE_STATES.get(status) == "expired"
+        }
+        entry_id = self.config_entry.entry_id
+        for key, (_, name, _) in LICENSES.items():
+            expiring_id = f"{entry_id}_license_expiring_{key}"
+            expired_id = f"{entry_id}_license_expired_{key}"
+            if key in expiring:
+                _, days, expiry = expiring[key]
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    expiring_id,
+                    is_fixable=False,
+                    is_persistent=False,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key="license_expiring",
+                    translation_placeholders={
+                        "firewall": title,
+                        "license": name,
+                        "days": str(max(days, 0)),
+                        "date": expiry.strftime("%d.%m.%Y"),
+                    },
+                )
+            else:
+                ir.async_delete_issue(self.hass, DOMAIN, expiring_id)
+            if key in expired:
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    expired_id,
+                    is_fixable=False,
+                    is_persistent=False,
+                    severity=ir.IssueSeverity.ERROR,
+                    translation_key="license_expired",
+                    translation_placeholders={"firewall": title, "license": name},
+                )
+            else:
+                ir.async_delete_issue(self.hass, DOMAIN, expired_id)
 
     async def _fetch(self) -> SnmpData:
         raw = await self.client.async_get(self._all_oids)

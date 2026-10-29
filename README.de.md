@@ -11,6 +11,7 @@ Sie nutzt **SNMP** für Systemwerte und die **XML-API** zum Lesen und Schalten v
 - CPU-Auslastung, Arbeitsspeicher, Swap*, Festplatte (in %)
 - Angemeldete Benutzer, letzter Neustart, Firmware, IPS-Signaturversion
 - Lizenzstatus und Ablaufdatum je Modul (Base Firewall, Network, Web, Zero-Day, Support …)
+- Tage bis zum nächsten Lizenzablauf
 - Pro ausgewähltem Interface: Download/Upload in Mbit/s, Gesamtvolumen*
 - Pro IPsec-Verbindung: Anzahl aktiver Tunnel*
 - Pro Sophos Access Point: Anzahl Clients
@@ -27,6 +28,11 @@ Sie nutzt **SNMP** für Systemwerte und die **XML-API** zum Lesen und Schalten v
 
 **Schalter**
 - Jede ausgewählte Firewall-Regel lässt sich aktivieren/deaktivieren
+
+**Reparaturen**
+- Warnung unter *Einstellungen → Reparaturen*, wenn eine Lizenz innerhalb von 30 Tagen abläuft (einstellbar, 0 = aus), und ein Fehler, wenn eine Lizenz abgelaufen ist
+
+Neue IPsec-Verbindungen und Access Points werden automatisch ergänzt; entfernte werden als „nicht verfügbar“ angezeigt.
 
 \* standardmäßig deaktiviert, kann unter *Entitäten* eingeschaltet werden.
 
@@ -55,13 +61,13 @@ Der Dialog fragt nacheinander:
 2. SNMP-Community bzw. v3-Zugangsdaten
 3. Welche Interfaces Sensoren bekommen (physische Ports sind vorausgewählt) und welche Firewall-Regeln als Schalter erscheinen sollen
 
-Alles aus Schritt 3 sowie die Abfrageintervalle (Standard: SNMP 30 s, API 60 s) lässt sich später unter **Konfigurieren** ändern.
+Alles aus Schritt 3, die Abfrageintervalle (Standard: SNMP 30 s, API 60 s) und der Vorlauf der Lizenzwarnung (Standard 30 Tage) lassen sich später unter **Konfigurieren** ändern.
 
 ## Hinweise
 
 - **Regel-Schalter ändern die Firewall-Konfiguration wirklich.** Jede Änderung erscheint im Admin-Log der Sophos. Keine Regel als Schalter anlegen, die den Zugriff von Home Assistant auf die Firewall selbst erlaubt.
 - SFOS erwartet beim Ändern einer Regel die komplette Regel. Die Integration liest die Regel deshalb, ändert nur den Status und schreibt sie vollständig zurück. Bitte nach dem ersten Schalten in der Sophos-Oberfläche kontrollieren, dass die Regel ansonsten unverändert ist.
-- Neue IPsec-Verbindungen oder Access Points werden beim nächsten Neuladen der Integration erkannt.
+- Den Online-Status der Gateways gibt SFOS weder per SNMP noch per XML-API heraus. Für Ausfallmeldungen den Link-Sensor des WAN-Ports oder die *Ping*-Integration von Home Assistant nutzen.
 - Das Lizenzablaufdatum wird aus dem Text der Firewall gelesen. Falls ein Format nicht erkannt wird, bleibt der Sensor „unbekannt“; der Originaltext steht im Attribut `rohwert`.
 - Bei falschen API-Zugangsdaten startet Home Assistant automatisch eine Neuanmeldung.
 

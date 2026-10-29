@@ -12,6 +12,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntityDescription,
 )
 from homeassistant.const import EntityCategory
+from homeassistant.core import callback
 
 from .const import (
     CONF_INTERFACES,
@@ -43,6 +44,7 @@ class SophosBinaryDescription(BinarySensorEntityDescription):
 
     value_fn: Callable[[SnmpData], bool | None]
     attr_fn: Callable[[SnmpData], dict[str, Any] | None] | None = None
+    exists_fn: Callable[[SnmpData], bool] | None = None
 
 
 def _service(key: str, name: str, enabled: bool) -> SophosBinaryDescription:
@@ -127,6 +129,7 @@ def _tunnel(name: str) -> SophosBinaryDescription:
             if (t := d.tunnels.get(name))
             else None
         ),
+        exists_fn=lambda d: name in d.tunnels,
     )
 
 
@@ -137,6 +140,7 @@ def _access_point(name: str) -> SophosBinaryDescription:
         icon="mdi:access-point-network",
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
         value_fn=lambda d: (a.connected if (a := d.access_points.get(name)) else None),
+        exists_fn=lambda d: name in d.access_points,
     )
 
 
@@ -156,9 +160,6 @@ async def async_setup_entry(
     if data.scalars.get("ha_status") == 1:
         descriptions.append(HA_PROBLEM)
     descriptions.extend(_interface(n) for n in entry.options.get(CONF_INTERFACES, []))
-    descriptions.extend(_tunnel(n) for n in data.tunnels)
-    descriptions.extend(_access_point(n) for n in data.access_points)
-
     entities: list[BinarySensorEntity] = [
         SophosBinarySensor(snmp, entry, desc) for desc in descriptions
     ]
@@ -167,6 +168,28 @@ async def async_setup_entry(
         SophosReachableSensor(entry.runtime_data.api, entry, "api_reachable", "Erreichbar (API)")
     )
     async_add_entities(entities)
+
+    # IPsec-Verbindungen und Access Points: auch später hinzugekommene anlegen
+    known_tunnels: set[str] = set()
+    known_aps: set[str] = set()
+
+    @callback
+    def _add_dynamic() -> None:
+        current = snmp.data
+        if current is None:
+            return
+        new: list[SophosBinarySensor] = []
+        for name in current.tunnels.keys() - known_tunnels:
+            known_tunnels.add(name)
+            new.append(SophosBinarySensor(snmp, entry, _tunnel(name)))
+        for name in current.access_points.keys() - known_aps:
+            known_aps.add(name)
+            new.append(SophosBinarySensor(snmp, entry, _access_point(name)))
+        if new:
+            async_add_entities(new)
+
+    _add_dynamic()
+    entry.async_on_unload(snmp.async_add_listener(_add_dynamic))
 
 
 class SophosBinarySensor(SophosEntity[SophosSnmpCoordinator], BinarySensorEntity):
@@ -182,6 +205,11 @@ class SophosBinarySensor(SophosEntity[SophosSnmpCoordinator], BinarySensorEntity
     ) -> None:
         super().__init__(coordinator, entry, description.key)
         self.entity_description = description
+
+    @property
+    def available(self) -> bool:
+        exists = self.entity_description.exists_fn
+        return super().available and (exists is None or exists(self.coordinator.data))
 
     @property
     def is_on(self) -> bool | None:

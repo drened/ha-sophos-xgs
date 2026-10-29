@@ -67,12 +67,23 @@
           "interfaces": "Interfaces",
           "firewall_rules": "Firewall-Regeln als Schalter",
           "snmp_interval": "SNMP-Abfrageintervall",
-          "api_interval": "API-Abfrageintervall"
+          "api_interval": "API-Abfrageintervall",
+          "license_warn_days": "Lizenz-Warnung (Tage vor Ablauf)"
         }
       }
     },
     "abort": {
       "not_loaded": "Die Integration ist gerade nicht geladen. Bitte erst die Verbindung zur Firewall herstellen."
+    }
+  },
+  "issues": {
+    "license_expiring": {
+      "title": "Sophos-Lizenz läuft bald ab: {license}",
+      "description": "Die Lizenz **{license}** der Firewall **{firewall}** läuft in **{days} Tagen** ab (am {date}).\n\nBitte rechtzeitig verlängern. Der Vorlauf für diese Warnung lässt sich in den Optionen der Integration einstellen (0 = aus)."
+    },
+    "license_expired": {
+      "title": "Sophos-Lizenz abgelaufen: {license}",
+      "description": "Die Lizenz **{license}** der Firewall **{firewall}** ist abgelaufen. Die zugehörigen Schutzfunktionen sind eingeschränkt oder deaktiviert.\n\nFalls die Lizenz bewusst nicht verlängert wird, kann dieser Hinweis ignoriert werden."
     }
   }
 }

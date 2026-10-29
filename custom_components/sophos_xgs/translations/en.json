@@ -67,12 +67,23 @@
           "interfaces": "Interfaces",
           "firewall_rules": "Firewall rules as switches",
           "snmp_interval": "SNMP polling interval",
-          "api_interval": "API polling interval"
+          "api_interval": "API polling interval",
+          "license_warn_days": "License warning (days before expiry)"
         }
       }
     },
     "abort": {
       "not_loaded": "The integration is not loaded. Connect to the firewall first."
+    }
+  },
+  "issues": {
+    "license_expiring": {
+      "title": "Sophos license expiring soon: {license}",
+      "description": "The **{license}** license of firewall **{firewall}** expires in **{days} days** (on {date}).\n\nPlease renew it in time. The warning lead time can be changed in the integration options (0 = off)."
+    },
+    "license_expired": {
+      "title": "Sophos license expired: {license}",
+      "description": "The **{license}** license of firewall **{firewall}** has expired. The related protection features are limited or disabled.\n\nIf you intentionally do not renew this license, you can ignore this issue."
     }
   }
 }

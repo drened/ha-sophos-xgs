@@ -22,11 +22,13 @@ CONF_INTERFACES = "interfaces"
 CONF_RULES = "firewall_rules"
 CONF_SNMP_INTERVAL = "snmp_interval"
 CONF_API_INTERVAL = "api_interval"
+CONF_LICENSE_WARN_DAYS = "license_warn_days"
 
 DEFAULT_API_PORT = 4444
 DEFAULT_SNMP_PORT = 161
 DEFAULT_SNMP_INTERVAL = 30
 DEFAULT_API_INTERVAL = 60
+DEFAULT_LICENSE_WARN_DAYS = 30
 
 SNMP_V2C = "v2c"
 SNMP_V3 = "v3"
@@ -122,6 +124,8 @@ LICENSE_STATES = {
     5: "deactivated",
 }
 LICENSE_PROBLEM_STATES = {"expired", "deactivated"}
+# Lizenzen mit diesen Zuständen laufen (noch) und haben ein relevantes Ablaufdatum
+LICENSE_ACTIVE_STATES = {"subscribed", "evaluating"}
 
 HA_STATES = {
     0: "notapplicable",

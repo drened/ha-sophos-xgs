@@ -83,8 +83,13 @@ def parse_license_date(raw: str | None) -> datetime | None:
     return None
 
 
+# SFOS Home und Dauerlizenzen melden als Ablaufdatum z. B. "Dec 31 2999".
+# Alles, was weiter als 50 Jahre in der Zukunft liegt, gilt als unbegrenzt.
+PERPETUAL_DAYS = 365 * 50
+
+
 def license_expiries(data: SnmpData) -> list[tuple[str, str, int, date]]:
-    """Laufende Lizenzen mit Ablaufdatum: (key, Name, Resttage, Datum), sortiert."""
+    """Laufende, befristete Lizenzen: (key, Name, Resttage, Datum), sortiert."""
     today = dt_util.now().date()
     result: list[tuple[str, str, int, date]] = []
     for key, (status, raw) in data.licenses.items():
@@ -94,7 +99,10 @@ def license_expiries(data: SnmpData) -> list[tuple[str, str, int, date]]:
         if parsed is None:
             continue
         expiry = parsed.date()
-        result.append((key, LICENSES[key][1], (expiry - today).days, expiry))
+        days = (expiry - today).days
+        if days > PERPETUAL_DAYS:
+            continue
+        result.append((key, LICENSES[key][1], days, expiry))
     result.sort(key=lambda item: item[2])
     return result
 

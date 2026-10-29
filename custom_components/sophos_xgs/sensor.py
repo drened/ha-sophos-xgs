@@ -279,7 +279,7 @@ def _license_days(d: SnmpData) -> int | None:
 def _license_days_attrs(d: SnmpData) -> dict[str, Any] | None:
     nxt = next_license_expiry(d)
     if nxt is None:
-        return None
+        return {"hinweis": "Keine befristete Lizenz (z. B. Home-Lizenz oder Dauerlizenz)"}
     _, name, _, expiry = nxt
     return {"lizenz": name, "ablaufdatum": expiry.isoformat()}
 

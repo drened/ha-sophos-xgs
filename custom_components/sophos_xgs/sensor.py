@@ -21,8 +21,9 @@ from homeassistant.const import (
     UnitOfTime,
 )
 from homeassistant.core import callback
+from homeassistant.helpers import entity_registry as er
 
-from .const import CONF_INTERFACES, HA_STATES, LICENSE_STATES, LICENSES
+from .const import CONF_INTERFACES, DOMAIN, HA_STATES, LICENSE_STATES, LICENSES
 from .coordinator import (
     SnmpData,
     SophosSnmpCoordinator,
@@ -313,7 +314,15 @@ async def async_setup_entry(
     descriptions.extend(_license_sensors())
     for if_name in entry.options.get(CONF_INTERFACES, []):
         descriptions.extend(_interface_sensors(if_name))
-    descriptions.append(LICENSE_DAYS_SENSOR)
+    # "Tage bis Lizenzablauf" nur, wenn es überhaupt eine befristete Lizenz gibt.
+    # Bei Sophos Home / Dauerlizenzen wäre der Sensor dauerhaft "unbekannt".
+    if next_license_expiry(data) is not None:
+        descriptions.append(LICENSE_DAYS_SENSOR)
+    else:
+        registry = er.async_get(hass)
+        unique_id = f"{entry.runtime_data.device_id}_{LICENSE_DAYS_SENSOR.key}"
+        if entity_id := registry.async_get_entity_id("sensor", DOMAIN, unique_id):
+            registry.async_remove(entity_id)
 
     async_add_entities(SophosSensor(coordinator, entry, desc) for desc in descriptions)
 
